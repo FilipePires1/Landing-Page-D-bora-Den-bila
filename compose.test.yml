@@ -1,0 +1,28 @@
+name: nextep-debora-teste
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  web:
+    image: ghcr.io/filipepires1/nextep-debora-web:${IMAGE_TAG:?defina IMAGE_TAG}
+    container_name: nextep-debora-teste-web
+    restart: unless-stopped
+    networks:
+      - edge
+    mem_limit: 32m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+
+networks:
+  edge:
+    name: nextep_edge
+    external: true
