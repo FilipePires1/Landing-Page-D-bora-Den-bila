@@ -610,20 +610,6 @@
   }
 
   /* ========================================================================
-     05b. Pré-seleciona "Quero participar de uma palestra" nos CTAs de palestra
-     ===================================================================== */
-  var interestLinks = document.querySelectorAll('[data-necessidade]');
-  var interestSelect = document.getElementById('necessidade');
-
-  if (interestLinks.length && interestSelect) {
-    Array.prototype.forEach.call(interestLinks, function (link) {
-      link.addEventListener('click', function () {
-        interestSelect.value = link.getAttribute('data-necessidade');
-      });
-    });
-  }
-
-  /* ========================================================================
      06. Ano atual no rodapé
      ===================================================================== */
   var currentYear = String(new Date().getFullYear());
