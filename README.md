@@ -150,6 +150,8 @@ O formulário **não tem backend** e não armazena dados. Ao enviar:
 
 Os campos e opções ficam em `index.html` (seção `FORMULÁRIO`). As mensagens de erro e os validadores ficam em `main.js` (objeto `validators`). A máscara aceita telefone fixo (10 dígitos) e celular (11 dígitos). O select de necessidade inclui a opção **Quero participar de uma palestra**.
 
+Os botões **“Participar de uma palestra”** do hero e da seção Palestras abrem diretamente o grupo do WhatsApp (`https://chat.whatsapp.com/Cjyg97lM4QBKkZlG3AqeLC`), sem passar pelo formulário. Se o grupo mudar, substitua a URL nos dois botões do `index.html`.
+
 Para trocar o destino do formulário:
 
 - **Outro número de WhatsApp:** altere a constante `WHATSAPP_NUMBER` em `main.js` e os links citados no item 3.4.
