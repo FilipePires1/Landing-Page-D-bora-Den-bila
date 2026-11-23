@@ -1,5 +1,6 @@
 .git
 .github
+.gitignore
 Dockerfile
 compose.prod.yml
 compose.test.yml
