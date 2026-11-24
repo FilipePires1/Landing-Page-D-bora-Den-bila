@@ -1,14 +1,15 @@
 /* ==========================================================================
    Débora Denúbila — Consentimento de cookies
    --------------------------------------------------------------------------
-   - Carrega o Google Tag Manager somente após consentimento de análise.
+   - Carrega o Google Tag Manager somente com consentimento de análise.
+   - Carrega o Meta Pixel somente com consentimento de marketing.
    - Mostra um aviso no primeiro acesso e preferências no rodapé.
    - Guarda a escolha em localStorage (sem cookies de terceiros).
    ========================================================================== */
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'debora_cookie_consent_v1';
+  var STORAGE_KEY = 'debora_cookie_consent_v2';
   var GTM_ID = 'GTM-N2CGCSJD';
   var scriptEl = document.currentScript;
   var base = scriptEl && scriptEl.src
@@ -24,14 +25,16 @@
   }
 
   var analytics = stored ? stored.analytics === true : false;
+  var marketing = stored ? stored.marketing === true : false;
   var gtmLoaded = false;
   var banner = null;
   var modal = null;
   var analyticsInput = null;
+  var marketingInput = null;
   var lastFocus = null;
 
   window.dataLayer = window.dataLayer || [];
-  window.DeboraConsent = { analytics: analytics };
+  window.DeboraConsent = { analytics: analytics, marketing: marketing };
 
   function loadGtm() {
     if (gtmLoaded || !analytics) return;
@@ -75,14 +78,30 @@
     clearAnalyticsCookies();
   }
 
-  function persist(value) {
-    analytics = value === true;
+  function loadMetaPixel() {
+    if (!marketing || !window.DeboraMetaPixel) return;
+    window.DeboraMetaPixel.load();
+  }
+
+  function unloadMetaPixel() {
+    if (window.DeboraMetaPixel) window.DeboraMetaPixel.unload();
+  }
+
+  function persist(analyticsValue, marketingValue) {
+    analytics = analyticsValue === true;
+    marketing = marketingValue === true;
+
     window.DeboraConsent.analytics = analytics;
+    window.DeboraConsent.marketing = marketing;
 
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ analytics: analytics, savedAt: new Date().toISOString() })
+        JSON.stringify({
+          analytics: analytics,
+          marketing: marketing,
+          savedAt: new Date().toISOString()
+        })
       );
     } catch (error) {
       /* localStorage bloqueado: a escolha vale para esta visita. */
@@ -92,6 +111,12 @@
       loadGtm();
     } else {
       unloadGtm();
+    }
+
+    if (marketing) {
+      loadMetaPixel();
+    } else {
+      unloadMetaPixel();
     }
   }
 
@@ -109,8 +134,8 @@
     banner.innerHTML =
       '<p class="cookie-banner__title">Sua privacidade</p>' +
       '<p class="cookie-banner__text">Usamos armazenamento essencial para o site funcionar e, ' +
-      'com seu consentimento, cookies de análise para entender como ele é usado. ' +
-      'Saiba mais na <a href="' + base + 'cookies/">Política de Cookies</a>.</p>' +
+      'com seu consentimento, cookies de análise e marketing para entender o uso do site e ' +
+      'medir o resultado dos anúncios. Saiba mais na <a href="' + base + 'cookies/">Política de Cookies</a>.</p>' +
       '<div class="cookie-banner__actions">' +
       '<button class="cookie-btn" type="button" data-cookie-essential>Apenas essenciais</button>' +
       '<button class="cookie-btn" type="button" data-cookie-preferences>Preferências</button>' +
@@ -147,6 +172,12 @@
       '<small id="cookie-analytics-desc">Ajuda a entender como o site é usado, por meio do Google Tag Manager e do Google Analytics. ' +
       'Só é ativada com o seu consentimento.</small></div>' +
       '</div>' +
+      '<div class="cookie-group">' +
+      '<input id="cookie-marketing" type="checkbox" data-cookie-marketing aria-describedby="cookie-marketing-desc">' +
+      '<div class="cookie-group__body"><label for="cookie-marketing"><strong>Marketing</strong></label>' +
+      '<small id="cookie-marketing-desc">Permite medir o resultado dos anúncios e exibir conteúdo relevante no Facebook e Instagram, ' +
+      'por meio do Pixel da Meta. Só é ativada com o seu consentimento.</small></div>' +
+      '</div>' +
       '<div class="cookie-modal__actions">' +
       '<button class="cookie-btn cookie-btn--primary" type="button" data-cookie-save>Salvar preferências</button>' +
       '<button class="cookie-btn" type="button" data-cookie-accept>Aceitar todos</button>' +
@@ -158,6 +189,7 @@
 
     document.body.appendChild(modal);
     analyticsInput = modal.querySelector('[data-cookie-analytics]');
+    marketingInput = modal.querySelector('[data-cookie-marketing]');
   }
 
   function openModal(trigger) {
@@ -165,6 +197,7 @@
 
     lastFocus = trigger || document.activeElement;
     analyticsInput.checked = analytics;
+    marketingInput.checked = marketing;
     modal.hidden = false;
 
     if (banner && !banner.hidden) {
@@ -206,8 +239,8 @@
     restoreFocus();
   }
 
-  function finishChoice(value) {
-    persist(value);
+  function finishChoice(analyticsValue, marketingValue) {
+    persist(analyticsValue, marketingValue);
 
     if (banner) {
       banner.hidden = true;
@@ -265,17 +298,20 @@
       }
 
       if (accept) {
-        finishChoice(true);
+        finishChoice(true, true);
         return;
       }
 
       if (essential) {
-        finishChoice(false);
+        finishChoice(false, false);
         return;
       }
 
       if (save) {
-        finishChoice(analyticsInput ? analyticsInput.checked : false);
+        finishChoice(
+          analyticsInput ? analyticsInput.checked : false,
+          marketingInput ? marketingInput.checked : false
+        );
         return;
       }
 
@@ -295,6 +331,7 @@
   }
 
   if (analytics) loadGtm();
+  if (marketing) loadMetaPixel();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

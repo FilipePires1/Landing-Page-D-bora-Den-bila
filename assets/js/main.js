@@ -610,6 +610,30 @@
   }
 
   /* ========================================================================
+     05c. Evento de Lead no clique do grupo de palestras (Meta Pixel)
+     ===================================================================== */
+  var metaEventLinks = document.querySelectorAll('[data-meta-event]');
+
+  if (metaEventLinks.length) {
+    Array.prototype.forEach.call(metaEventLinks, function (link) {
+      link.addEventListener('click', function () {
+        if (!window.DeboraMetaPixel || !window.DeboraConsent || !window.DeboraConsent.marketing) {
+          return;
+        }
+
+        window.DeboraMetaPixel.track(
+          link.getAttribute('data-meta-event') || 'Lead',
+          {
+            content_name: link.getAttribute('data-meta-content') || 'Grupo de palestras',
+            content_category: 'palestras',
+            destination: 'Grupo de WhatsApp'
+          }
+        );
+      });
+    });
+  }
+
+  /* ========================================================================
      06. Ano atual no rodapé
      ===================================================================== */
   var currentYear = String(new Date().getFullYear());
