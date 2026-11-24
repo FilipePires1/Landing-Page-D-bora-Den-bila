@@ -49,7 +49,8 @@ debora-denubila-site/
     │   └── legal.css           → rodapé legal, páginas jurídicas e cookies
     ├── js/
     │   ├── main.js             → menu, carrossel, animações, máscara e formulário
-    │   └── consent.js          → consentimento de cookies e carregamento do GTM
+    │   ├── consent.js          → consentimento de cookies, GTM e Meta Pixel
+    │   └── meta-pixel.js       → Pixel da Meta e evento Lead das palestras
     ├── fonts/
     │   └── roboto-latin.woff2  → fonte Roboto (auto-hospedada)
     ├── img/                    → fotos otimizadas, logos e compartilhamento
@@ -152,6 +153,8 @@ Os campos e opções ficam em `index.html` (seção `FORMULÁRIO`). As mensagens
 
 Os botões **“Participar de uma palestra”** do hero e da seção Palestras abrem diretamente o grupo do WhatsApp (`https://chat.whatsapp.com/Cjyg97lM4QBKkZlG3AqeLC`), sem passar pelo formulário. Se o grupo mudar, substitua a URL nos dois botões do `index.html`.
 
+Quando o visitante aceitou **Marketing**, esses dois botões também disparam o evento **`Lead`** do Meta Pixel (com `content_name: 'Grupo de palestras'`). O clique abre o WhatsApp em nova aba normalmente.
+
 Para trocar o destino do formulário:
 
 - **Outro número de WhatsApp:** altere a constante `WHATSAPP_NUMBER` em `main.js` e os links citados no item 3.4.
@@ -166,15 +169,22 @@ O arquivo `obrigado/index.html` gera a rota `/obrigado/`, igual à do site origi
 
 Use essa página como destino de campanhas, redirecionamento pós-envio de um backend ou página de conversão. Para editar, altere o texto e a imagem normalmente; os caminhos usam `../assets/` porque o arquivo está dentro da pasta `obrigado`.
 
-### 3.7 Google Tag Manager e consentimento
+### 3.7 Google Tag Manager, Meta Pixel e consentimento
 
-O GTM **não é carregado automaticamente**. O container `GTM-N2CGCSJD` fica em `assets/js/consent.js` e só é inserido depois que o visitante aceita a categoria **Análise** no aviso de cookies.
+O GTM e o Meta Pixel **não são carregados automaticamente**.
 
-- Para trocar o container, altere a constante `GTM_ID` em `consent.js`.
-- Para remover o GTM, apague a constante e a função `loadGtm()` (ou deixe o consentimento sem a categoria de análise).
-- O formulário envia `form_whatsapp` (com `form: 'consulta'` e `necessidade`) somente quando a análise está autorizada. Crie o acionador correspondente no GTM.
-- O aviso de cookies aparece no primeiro acesso. A escolha fica em `localStorage`, na chave `debora_cookie_consent_v1`. O link **Preferências de cookies** do rodapé reabre o modal.
-- Essenciais ficam sempre ativos; análise é opcional. Ao revogar, o script do GTM é removido e os cookies `_ga*` são apagados.
+- O container `GTM-N2CGCSJD` fica em `assets/js/consent.js` e só é inserido depois que o visitante aceita a categoria **Análise**.
+- O Pixel da Meta fica em `assets/js/meta-pixel.js`, com o ID `1841091313884205`, e só é inserido depois que o visitante aceita **Marketing**.
+- Os dois botões “Participar de uma palestra” disparam o evento **`Lead`** quando há consentimento de marketing.
+- O aviso de cookies aparece no primeiro acesso; a escolha fica em `localStorage`, na chave `debora_cookie_consent_v2`. O link **Preferências de cookies** reabre o modal.
+- Essenciais ficam sempre ativos; análise e marketing são opcionais. Ao revogar, o script do GTM/Pixel é removido e os cookies correspondentes (`_ga*`, `_fbp`, `_fbc`) são apagados.
+- O formulário envia `form_whatsapp` (com `form: 'consulta'` e `necessidade`) somente quando a análise está autorizada.
+
+**Não duplique o Pixel no GTM:** o GTM deve conter apenas tags de análise; o Pixel da Meta é carregado pelo `meta-pixel.js` e controlado pela categoria Marketing. Se o mesmo Pixel também estiver no GTM, `PageView` e `Lead` serão contados duas vezes.
+
+**Token da Conversions API:** nunca coloque o token de acesso da Meta no site estático, no HTML ou no Git. O Pixel do navegador não precisa dele. Para Conversions API, use um backend/serverless com variável secreta; o token compartilhado em conversa deve ser rotacionado. O `meta-pixel.js` implementa apenas o Pixel do navegador.
+
+Para trocar o Pixel, altere `PIXEL_ID` em `meta-pixel.js`. Para remover o GTM, apague a constante `GTM_ID` e a função `loadGtm()`; para remover o Pixel, apague o `meta-pixel.js` e a chamada correspondente em `consent.js`.
 
 ### 3.8 Páginas legais e rodapé Nextep
 
@@ -217,7 +227,8 @@ O formulário depende de `assets/js/main.js`; confirme que a pasta `assets` foi 
 - [ ] Teste do carrossel do hero (abas, setas, teclado e swipe no celular)
 - [ ] Teste da página `/obrigado/`
 - [ ] Teste das páginas legais e do link “Preferências de cookies” (aceitar, recusar e revogar)
-- [ ] GTM em modo de visualização: confirmar que só carrega após consentimento e que `form_whatsapp` dispara
+- [ ] GTM em modo de visualização: confirmar que só carrega após consentimento de análise e que `form_whatsapp` dispara
+- [ ] Meta Pixel no Gerenciador de Eventos: confirmar `PageView` e `Lead` somente após consentimento de marketing
 - [ ] Fotos e logos carregando em desktop e mobile
 - [ ] Favicons e imagem de compartilhamento conferidos
 - [ ] Revisão jurídica dos Termos, Privacidade, Cookies e Exclusão de dados
@@ -230,7 +241,7 @@ O formulário depende de `assets/js/main.js`; confirme que a pasta `assets` foi 
 - **Sem dependências:** não há jQuery, Bootstrap, fontes do Google nem ícones externos. O único terceiro é o GTM (opcional e carregado somente após consentimento).
 - **Navegadores:** versões atuais de Chrome, Edge, Firefox e Safari. O carrossel usa `inert`; navegadores antigos ainda exibem o primeiro slide. Há fallback para navegadores sem `IntersectionObserver` e suporte a `prefers-reduced-motion`.
 - **Acessibilidade:** link "Ir para o conteúdo", foco visível, menu móvel com `aria-expanded`/Esc, carrossel com controles de teclado, swipe e status `aria-live`, rótulos associados aos campos, resumo de erros com links, mensagens inline com `aria-describedby`, `aria-live` no status e contraste AA nos textos e botões.
-- **Sem JavaScript:** o hero mostra os dois slides empilhados e os controles do carrossel são ocultados; o formulário exibe o link alternativo do WhatsApp; o banner de cookies não é injetado e o GTM não carrega.
+- **Sem JavaScript:** o hero mostra os dois slides empilhados e os controles do carrossel são ocultados; o formulário exibe o link alternativo do WhatsApp; o banner de cookies não é injetado e nem GTM nem Meta Pixel carregam.
 - **Imagens:** WebP com fallback JPEG nas fotos; `width`/`height` declarados para evitar deslocamento de layout; `loading="lazy"` fora da primeira dobra.
 - **Fonte:** Roboto, licenciada sob Apache 2.0, auto-hospedada em `assets/fonts`. É a fonte da marca no site original; por isso foi mantida mesmo sendo uma escolha tipográfica comum.
 - **Falsos positivos do detector:** `--muted-light` (`.section__lead--light`) e `.form-note` são usados somente sobre fundos verdes escuros, com contraste de 5,5:1 e 5,95:1. O detector automático compara essas cores com branco e pode sinalizá-las incorretamente.
